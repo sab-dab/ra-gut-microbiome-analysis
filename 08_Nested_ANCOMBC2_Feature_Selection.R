@@ -8,7 +8,7 @@
 # Feature selection is repeated independently within every train-test split.
 # =============================================================================
 
-setwd("C:/Users/sabir/Downloads/gut microbiota")
+
 
 save_dir <- file.path(
   getwd(),
@@ -19,10 +19,7 @@ if (!dir.exists(save_dir)) {
   dir.create(save_dir, recursive = TRUE)
 }
 
-model_dir <- paste0(
-  "C:/Users/sabir/RA_validation/",
-  "external_validation_results"
-)
+
 
 # =============================================================================
 # 1) Libraries
