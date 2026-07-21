@@ -1,4 +1,4 @@
-output_path <- "C:/Users/sabir/RA_validation/external_validation_results"
+
 
 library(dplyr)
 library(tidymodels)
@@ -93,7 +93,7 @@ workflow <- readRDS(
   )
 )
 
-output_path <- "C:/Users/sabir/RA_validation/external_validation_results"
+
 
 workflow <- readRDS(
   file.path(
