@@ -23,7 +23,7 @@
 # =============================================================================
 # 0) Setup
 # =============================================================================
-setwd("C:/Users/sabir/Downloads/gut microbiota")
+
 
 save_dir <- file.path(getwd(), "results_final")
 if (!dir.exists(save_dir)) dir.create(save_dir, recursive = TRUE)
