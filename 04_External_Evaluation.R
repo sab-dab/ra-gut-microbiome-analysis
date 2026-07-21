@@ -2,9 +2,7 @@
 # SCRIPT 4: EXTERNAL VALIDATION METRICS AND FIGURES
 # ============================================================
 
-output_path <- "C:/Users/sabir/RA_validation/external_validation_results"
 
-metadata_file <- "C:/Users/sabir/RA_validation/SraRunTable.csv" 
 
 library(dplyr)
 library(yardstick)
