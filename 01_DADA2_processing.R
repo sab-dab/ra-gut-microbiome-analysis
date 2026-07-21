@@ -1,8 +1,7 @@
 # ============================================================
 # SCRIPT 1: DADA2 PROCESSING ONLY
 # ============================================================
-external_path <- "C:/Users/sabir/RA_validation/External Validation Dataset"
-output_path   <- "C:/Users/sabir/RA_validation/external_validation_results"
+
 if (!dir.exists(output_path)) dir.create(output_path, recursive = TRUE)
 
 library(dada2)
@@ -127,7 +126,7 @@ cat("\nSCRIPT 1 COMPLETE\n")
 cat("Results saved in:", output_path, "\n")
 
 ############################################################################
-output_path <- "C:/Users/sabir/RA_validation/external_validation_results"
+
 
 seqtab <- readRDS(
   file.path(output_path, "external_seqtab.rds")
@@ -352,7 +351,7 @@ write.csv(
 )
 
 #assign taxonomy to each length group
-silva_path <- "C:/Users/sabir/RA_validation/silva_nr99_v138.1_train_set.fa.gz"
+silva_path <- "C:/silva_nr99_v138.1_train_set.fa.gz"
 
 taxa_456 <- dada2::assignTaxonomy(
   nochim_456,
