@@ -3,11 +3,9 @@
 # Raw-count log transformation vs relative abundance vs CLR
 # =============================================================================
 
-setwd("C:/Users/sabir/Downloads/gut microbiota")
 
 save_dir <- file.path(getwd(), "results_final")
 
-model_dir <- "C:/Users/sabir/RA_validation/external_validation_results"
 
 library(dplyr)
 library(tidyr)
