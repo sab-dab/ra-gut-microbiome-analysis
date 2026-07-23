@@ -31,7 +31,7 @@ For questions regarding this repository, please open a GitHub Issue.
 
 The analyses were performed using publicly available 16S rRNA sequencing datasets.
 
-- **Discovery cohort:** Li et al., Scientific Data (2025). The dataset is available from the public repository referenced in the manuscript.
+- ** Primary Dataset:** Li et al., Scientific Data (2025). The dataset is available from the public repository referenced in the manuscript.
 - **External validation cohort:** Sun et al. The raw sequencing data are available from the public repository referenced in the manuscript.
 
 To comply with the original data providers' terms of use, this repository contains analysis code only. Users should download the datasets from the original repositories before running the scripts.
