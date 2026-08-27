@@ -2948,3 +2948,85 @@ write.csv(
   ),
   row.names = FALSE
 )
+repeated_summary_all_models %>%
+  dplyr::filter(
+    Model == "SVM-RBF",
+    Metric == "ROC_AUC"
+  ) 
+# =============================================================================
+# Pairwise comparison of repeated ROC-AUC: XGBoost vs other models
+# =============================================================================
+
+all_runs <- read.csv(
+  "results_final/Repeated_Validation_All_Models_All_Runs.csv",
+  stringsAsFactors = FALSE
+)
+
+auc_wide <- all_runs %>%
+  dplyr::select(Seed, Model, ROC_AUC) %>%
+  tidyr::pivot_wider(
+    names_from = Model,
+    values_from = ROC_AUC
+  )
+
+# XGBoost vs Random Forest
+test_rf <- wilcox.test(
+  auc_wide$XGBoost,
+  auc_wide$`Random Forest`,
+  paired = TRUE,
+  exact = FALSE
+)
+
+# XGBoost vs SVM-RBF
+test_svm <- wilcox.test(
+  auc_wide$XGBoost,
+  auc_wide$`SVM-RBF`,
+  paired = TRUE,
+  exact = FALSE
+)
+
+# XGBoost vs LASSO
+test_lasso <- wilcox.test(
+  auc_wide$XGBoost,
+  auc_wide$`LASSO Logistic`,
+  paired = TRUE,
+  exact = FALSE
+)
+
+pairwise_auc_results <- data.frame(
+  Comparison = c(
+    "XGBoost vs Random Forest",
+    "XGBoost vs SVM-RBF",
+    "XGBoost vs LASSO Logistic"
+  ),
+  
+  XGBoost_Mean_AUC = mean(auc_wide$XGBoost),
+  
+  Comparator_Mean_AUC = c(
+    mean(auc_wide$`Random Forest`),
+    mean(auc_wide$`SVM-RBF`),
+    mean(auc_wide$`LASSO Logistic`)
+  ),
+  
+  Mean_Difference = c(
+    mean(auc_wide$XGBoost - auc_wide$`Random Forest`),
+    mean(auc_wide$XGBoost - auc_wide$`SVM-RBF`),
+    mean(auc_wide$XGBoost - auc_wide$`LASSO Logistic`)
+  ),
+  
+  P_Value = c(
+    test_rf$p.value,
+    test_svm$p.value,
+    test_lasso$p.value
+  )
+)
+
+print(pairwise_auc_results)
+
+pairwise_auc_results$P_Adjusted_Holm <- p.adjust(
+  pairwise_auc_results$P_Value,
+  method = "holm"
+)
+
+print(pairwise_auc_result)
+
