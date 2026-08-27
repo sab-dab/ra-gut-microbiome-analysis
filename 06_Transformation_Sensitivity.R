@@ -1,11 +1,31 @@
+
+
 # =============================================================================
-# Transformation sensitivity analysis
-# Raw-count log transformation vs relative abundance vs CLR
+# 0) Paths
 # =============================================================================
 
 
-save_dir <- file.path(getwd(), "results_final")
 
+model_dir <- file.path(
+  project_dir,
+  "genus_model_rebuild"
+)
+
+save_dir <- file.path(
+  project_dir,
+  "results_final_RETUNED"
+)
+
+if (!dir.exists(save_dir)) {
+  dir.create(
+    save_dir,
+    recursive = TRUE
+  )
+}
+
+# =============================================================================
+# 1) Packages
+# =============================================================================
 
 library(dplyr)
 library(tidyr)
@@ -16,20 +36,20 @@ library(xgboost)
 tidymodels::tidymodels_prefer()
 
 # =============================================================================
-# 1) Load saved discovery genus data and finalized XGBoost workflow
+# 2) Load rebuilt discovery genus data + RETUNED workflow
 # =============================================================================
 
 discovery_genus_df <- readRDS(
   file.path(
     model_dir,
-    "discovery_genus_training_data.rds"
+    "discovery_genus_training_data_rebuilt.rds"
   )
 )
 
 finalized_xgb_workflow <- readRDS(
   file.path(
     model_dir,
-    "finalized_genus_xgboost_workflow.rds"
+    "finalized_genus_xgboost_workflow_retuned.rds"
   )
 )
 
@@ -43,13 +63,40 @@ predictor_names <- base::setdiff(
   c("Sample", "Group")
 )
 
-cat("Samples:", nrow(discovery_genus_df), "\n")
-cat("Predictors:", length(predictor_names), "\n")
-cat("HC:", sum(discovery_genus_df$Group == "HC"), "\n")
-cat("RA:", sum(discovery_genus_df$Group == "RA"), "\n")
+cat(
+  "Samples:",
+  nrow(discovery_genus_df),
+  "\n"
+)
+
+cat(
+  "Predictors:",
+  length(predictor_names),
+  "\n"
+)
+
+cat(
+  "HC:",
+  sum(discovery_genus_df$Group == "HC"),
+  "\n"
+)
+
+cat(
+  "RA:",
+  sum(discovery_genus_df$Group == "RA"),
+  "\n"
+)
+
+stopifnot(
+  nrow(discovery_genus_df) == 2238
+)
+
+stopifnot(
+  length(predictor_names) == 447
+)
 
 # =============================================================================
-# 2) Transformation functions
+# 3) Transformation functions
 # =============================================================================
 
 make_raw_counts <- function(data) {
@@ -60,10 +107,16 @@ make_raw_counts <- function(data) {
 make_relative_abundance <- function(data) {
   
   feature_matrix <- as.matrix(
-    data[, predictor_names, drop = FALSE]
+    data[
+      ,
+      predictor_names,
+      drop = FALSE
+    ]
   )
   
-  sample_totals <- rowSums(feature_matrix)
+  sample_totals <- rowSums(
+    feature_matrix
+  )
   
   relative_matrix <- sweep(
     feature_matrix,
@@ -72,7 +125,9 @@ make_relative_abundance <- function(data) {
     "/"
   )
   
-  relative_matrix[!is.finite(relative_matrix)] <- 0
+  relative_matrix[
+    !is.finite(relative_matrix)
+  ] <- 0
   
   result <- as.data.frame(
     relative_matrix,
@@ -86,7 +141,9 @@ make_relative_abundance <- function(data) {
     dplyr::select(
       Sample,
       Group,
-      dplyr::all_of(predictor_names)
+      dplyr::all_of(
+        predictor_names
+      )
     )
 }
 
@@ -95,15 +152,22 @@ make_clr <- function(
     pseudocount = 0.5) {
   
   feature_matrix <- as.matrix(
-    data[, predictor_names, drop = FALSE]
+    data[
+      ,
+      predictor_names,
+      drop = FALSE
+    ]
   )
   
   log_matrix <- log(
-    feature_matrix + pseudocount
+    feature_matrix +
+      pseudocount
   )
   
   clr_matrix <- log_matrix -
-    rowMeans(log_matrix)
+    rowMeans(
+      log_matrix
+    )
   
   result <- as.data.frame(
     clr_matrix,
@@ -117,9 +181,15 @@ make_clr <- function(
     dplyr::select(
       Sample,
       Group,
-      dplyr::all_of(predictor_names)
+      dplyr::all_of(
+        predictor_names
+      )
     )
 }
+
+# =============================================================================
+# 4) Create transformed datasets
+# =============================================================================
 
 raw_count_df <- make_raw_counts(
   discovery_genus_df
@@ -137,7 +207,12 @@ clr_df <- make_clr(
 cat(
   "Raw-count range:",
   range(
-    as.matrix(raw_count_df[, predictor_names]),
+    as.matrix(
+      raw_count_df[
+        ,
+        predictor_names
+      ]
+    ),
     na.rm = TRUE
   ),
   "\n"
@@ -146,7 +221,12 @@ cat(
 cat(
   "Relative-abundance range:",
   range(
-    as.matrix(relative_abundance_df[, predictor_names]),
+    as.matrix(
+      relative_abundance_df[
+        ,
+        predictor_names
+      ]
+    ),
     na.rm = TRUE
   ),
   "\n"
@@ -155,24 +235,48 @@ cat(
 cat(
   "CLR range:",
   range(
-    as.matrix(clr_df[, predictor_names]),
+    as.matrix(
+      clr_df[
+        ,
+        predictor_names
+      ]
+    ),
     na.rm = TRUE
   ),
   "\n"
 )
 
 # =============================================================================
-# 3) Reuse the same finalized XGBoost model specification
+# 5) Extract RETUNED XGBoost model specification
 # =============================================================================
 
 final_xgb_spec <- workflows::extract_spec_parsnip(
   finalized_xgb_workflow
 )
 
-print(final_xgb_spec)
+cat(
+  "\nRETUNED XGBoost specification:\n"
+)
+
+print(
+  final_xgb_spec
+)
 
 # =============================================================================
-# 4) Create recipes
+# 6) Transformation-specific recipes
+#
+# Same analytical design as original transformation sensitivity analysis.
+#
+# Raw counts:
+#   zero-variance removal
+#   log(x+1)
+#   normalization
+#
+# Relative abundance / CLR:
+#   zero-variance removal
+#   normalization
+#
+# All preprocessing learned from each training partition only.
 # =============================================================================
 
 create_recipe <- function(
@@ -191,7 +295,10 @@ create_recipe <- function(
       recipes::all_predictors()
     )
   
-  if (transformation == "Raw log(x+1)") {
+  if (
+    transformation ==
+    "Raw log(x+1)"
+  ) {
     
     base_recipe <- base_recipe %>%
       recipes::step_log(
@@ -204,8 +311,6 @@ create_recipe <- function(
     
   } else {
     
-    # Relative abundance and CLR are already transformed.
-    # Standardization is learned from training data only.
     base_recipe <- base_recipe %>%
       recipes::step_normalize(
         recipes::all_predictors()
@@ -216,9 +321,11 @@ create_recipe <- function(
 }
 
 # =============================================================================
-# 5) Repeated comparison of transformations
+# 7) Repeated transformation comparison
 # =============================================================================
+
 N_REPEATS <- 30
+
 set.seed(123)
 
 repeat_seeds <- sample(
@@ -228,17 +335,26 @@ repeat_seeds <- sample(
 )
 
 transformation_data <- list(
-  "Raw log(x+1)" = raw_count_df,
-  "Relative abundance" = relative_abundance_df,
-  "CLR" = clr_df
+  "Raw log(x+1)" =
+    raw_count_df,
+  "Relative abundance" =
+    relative_abundance_df,
+  "CLR" =
+    clr_df
 )
+
+# =============================================================================
+# 8) Evaluation function
+# =============================================================================
 
 evaluate_transformation <- function(
     full_data,
     transformation_name,
     seed_value) {
   
-  set.seed(seed_value)
+  set.seed(
+    seed_value
+  )
   
   split_obj <- rsample::initial_split(
     full_data,
@@ -246,17 +362,27 @@ evaluate_transformation <- function(
     strata = Group
   )
   
-  train_df <- rsample::training(split_obj)
-  test_df  <- rsample::testing(split_obj)
+  train_df <- rsample::training(
+    split_obj
+  )
+  
+  test_df <- rsample::testing(
+    split_obj
+  )
   
   rec <- create_recipe(
     training_data = train_df,
-    transformation = transformation_name
+    transformation =
+      transformation_name
   )
   
   wf <- workflows::workflow() %>%
-    workflows::add_recipe(rec) %>%
-    workflows::add_model(final_xgb_spec)
+    workflows::add_recipe(
+      rec
+    ) %>%
+    workflows::add_model(
+      final_xgb_spec
+    )
   
   fitted_wf <- parsnip::fit(
     wf,
@@ -264,7 +390,10 @@ evaluate_transformation <- function(
   )
   
   predictions <- test_df %>%
-    dplyr::select(Sample, Group) %>%
+    dplyr::select(
+      Sample,
+      Group
+    ) %>%
     dplyr::bind_cols(
       predict(
         fitted_wf,
@@ -278,44 +407,60 @@ evaluate_transformation <- function(
       )
     ) %>%
     dplyr::mutate(
-      Group = factor(Group, levels = c("HC", "RA"))
+      Group = factor(
+        Group,
+        levels = c(
+          "HC",
+          "RA"
+        )
+      )
     )
   
   data.frame(
+    
     Seed = seed_value,
-    Transformation = transformation_name,
     
-    Accuracy = yardstick::accuracy(
-      predictions,
-      truth = Group,
-      estimate = .pred_class
-    )$.estimate,
+    Transformation =
+      transformation_name,
     
-    Sensitivity = yardstick::sens(
-      predictions,
-      truth = Group,
-      estimate = .pred_class,
-      event_level = "second"
-    )$.estimate,
+    Accuracy =
+      yardstick::accuracy(
+        predictions,
+        truth = Group,
+        estimate = .pred_class
+      )$.estimate,
     
-    Specificity = yardstick::spec(
-      predictions,
-      truth = Group,
-      estimate = .pred_class,
-      event_level = "second"
-    )$.estimate,
+    Sensitivity =
+      yardstick::sens(
+        predictions,
+        truth = Group,
+        estimate = .pred_class,
+        event_level = "second"
+      )$.estimate,
     
-    ROC_AUC = yardstick::roc_auc(
-      predictions,
-      truth = Group,
-      .pred_RA,
-      event_level = "second"
-    )$.estimate
+    Specificity =
+      yardstick::spec(
+        predictions,
+        truth = Group,
+        estimate = .pred_class,
+        event_level = "second"
+      )$.estimate,
+    
+    ROC_AUC =
+      yardstick::roc_auc(
+        predictions,
+        truth = Group,
+        .pred_RA,
+        event_level = "second"
+      )$.estimate
   )
 }
 
-all_transformation_results <- list()
+# =============================================================================
+# 9) Run all 30 x 3 analyses
+# =============================================================================
 
+all_transformation_results <- list()
 result_index <- 1
 
 for (current_seed in repeat_seeds) {
@@ -341,13 +486,15 @@ for (current_seed in repeat_seeds) {
     )
     
     all_transformation_results[[result_index]] <- current_result
+    
     result_index <- result_index + 1
     
+    # Save progress after every completed model
     write.csv(
       dplyr::bind_rows(all_transformation_results),
       file.path(
         save_dir,
-        "Transformation_Sensitivity_Progress.csv"
+        "Transformation_Sensitivity_RETUNED_Progress.csv"
       ),
       row.names = FALSE
     )
@@ -355,28 +502,34 @@ for (current_seed in repeat_seeds) {
     invisible(gc())
   }
 }
+# =============================================================================
+# 10) Save all individual runs
+# =============================================================================
 
-transformation_results <- dplyr::bind_rows(
-  all_transformation_results
+transformation_results <-
+  dplyr::bind_rows(
+    all_transformation_results
+  )
+
+print(
+  transformation_results
 )
-
-print(transformation_results)
 
 write.csv(
   transformation_results,
   file.path(
     save_dir,
-    "Transformation_Sensitivity_All_Runs.csv"
+    "Transformation_Sensitivity_RETUNED_All_Runs.csv"
   ),
   row.names = FALSE
 )
 
-
 # =============================================================================
-# 6) Summarize transformation sensitivity
+# 11) Summarize results
 # =============================================================================
 
-transformation_summary <- transformation_results %>%
+transformation_summary <-
+  transformation_results %>%
   tidyr::pivot_longer(
     cols = c(
       Accuracy,
@@ -392,28 +545,243 @@ transformation_summary <- transformation_results %>%
     Metric
   ) %>%
   dplyr::summarise(
-    Repetitions = dplyr::n(),
-    Mean = mean(Value, na.rm = TRUE),
-    SD = sd(Value, na.rm = TRUE),
-    Median = median(Value, na.rm = TRUE),
-    Minimum = min(Value, na.rm = TRUE),
-    Maximum = max(Value, na.rm = TRUE),
-    CI_Lower = Mean -
-      qt(0.975, df = Repetitions - 1) *
-      SD / sqrt(Repetitions),
-    CI_Upper = Mean +
-      qt(0.975, df = Repetitions - 1) *
-      SD / sqrt(Repetitions),
+    
+    Repetitions =
+      dplyr::n(),
+    
+    Mean =
+      mean(
+        Value,
+        na.rm = TRUE
+      ),
+    
+    SD =
+      stats::sd(
+        Value,
+        na.rm = TRUE
+      ),
+    
+    Median =
+      stats::median(
+        Value,
+        na.rm = TRUE
+      ),
+    
+    Minimum =
+      min(
+        Value,
+        na.rm = TRUE
+      ),
+    
+    Maximum =
+      max(
+        Value,
+        na.rm = TRUE
+      ),
+    
+    CI_Lower =
+      Mean -
+      stats::qt(
+        0.975,
+        df =
+          Repetitions - 1
+      ) *
+      SD /
+      sqrt(
+        Repetitions
+      ),
+    
+    CI_Upper =
+      Mean +
+      stats::qt(
+        0.975,
+        df =
+          Repetitions - 1
+      ) *
+      SD /
+      sqrt(
+        Repetitions
+      ),
+    
     .groups = "drop"
   )
 
-print(transformation_summary)
+print(
+  transformation_summary
+)
 
 write.csv(
   transformation_summary,
   file.path(
     save_dir,
-    "Transformation_Sensitivity_Summary.csv"
+    "Transformation_Sensitivity_RETUNED_Summary.csv"
   ),
   row.names = FALSE
+)
+
+# =============================================================================
+# 12) Show ROC-AUC summary
+# =============================================================================
+
+cat(
+  "\n============================================\n"
+)
+
+cat(
+  "RETUNED TRANSFORMATION ROC-AUC SUMMARY\n"
+)
+
+cat(
+  "============================================\n"
+)
+
+print(
+  transformation_summary %>%
+    dplyr::filter(
+      Metric == "ROC_AUC"
+    )
+)
+
+# =============================================================================
+# 13) Paired ROC-AUC comparisons
+# =============================================================================
+
+auc_trans <-
+  transformation_results %>%
+  dplyr::select(
+    Seed,
+    Transformation,
+    ROC_AUC
+  ) %>%
+  tidyr::pivot_wider(
+    names_from =
+      Transformation,
+    values_from =
+      ROC_AUC
+  )
+
+stopifnot(
+  nrow(auc_trans) == 30
+)
+
+test_relative <-
+  stats::wilcox.test(
+    auc_trans$`Raw log(x+1)`,
+    auc_trans$`Relative abundance`,
+    paired = TRUE,
+    exact = FALSE,
+    conf.int = TRUE
+  )
+
+test_clr <-
+  stats::wilcox.test(
+    auc_trans$`Raw log(x+1)`,
+    auc_trans$CLR,
+    paired = TRUE,
+    exact = FALSE,
+    conf.int = TRUE
+  )
+
+transformation_comparison <-
+  data.frame(
+    
+    Comparison = c(
+      "Raw log(x+1) vs Relative abundance",
+      "Raw log(x+1) vs CLR"
+    ),
+    
+    Raw_Mean_AUC =
+      mean(
+        auc_trans$`Raw log(x+1)`
+      ),
+    
+    Comparator_Mean_AUC =
+      c(
+        mean(
+          auc_trans$`Relative abundance`
+        ),
+        mean(
+          auc_trans$CLR
+        )
+      ),
+    
+    Mean_Difference =
+      c(
+        mean(
+          auc_trans$`Raw log(x+1)` -
+            auc_trans$`Relative abundance`
+        ),
+        
+        mean(
+          auc_trans$`Raw log(x+1)` -
+            auc_trans$CLR
+        )
+      ),
+    
+    P_Value =
+      c(
+        test_relative$p.value,
+        test_clr$p.value
+      )
+  )
+
+transformation_comparison$P_Adjusted_Holm <-
+  stats::p.adjust(
+    transformation_comparison$P_Value,
+    method = "holm"
+  )
+
+cat(
+  "\n============================================\n"
+)
+
+cat(
+  "PAIRED TRANSFORMATION COMPARISONS\n"
+)
+
+cat(
+  "============================================\n"
+)
+
+print(
+  transformation_comparison
+)
+
+write.csv(
+  transformation_comparison,
+  file.path(
+    save_dir,
+    "Transformation_Sensitivity_RETUNED_Paired_Comparisons.csv"
+  ),
+  row.names = FALSE
+)
+
+# =============================================================================
+# 14) Save session information
+# =============================================================================
+
+capture.output(
+  sessionInfo(),
+  file = file.path(
+    save_dir,
+    "Transformation_Sensitivity_RETUNED_SessionInfo.txt"
+  )
+)
+
+cat(
+  "\n============================================\n"
+)
+
+cat(
+  "RETUNED TRANSFORMATION ANALYSIS COMPLETE\n"
+)
+
+cat(
+  "Results saved in:\n",
+  save_dir,
+  "\n"
+)
+
+cat(
+  "============================================\n"
 )
