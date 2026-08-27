@@ -1,0 +1,3 @@
+"Diversity_Metric","HC_n","HC_Median_IQR","RA_n","RA_Median_IQR","Median_Difference_95CI","Wilcoxon_W","P_Value_Formatted","Cliffs_Delta_RA_vs_HC"
+"Shannon diversity",1204,"4.469 (4.135–4.742)",1034,"4.402 (3.986–4.710)","-0.067 (-0.126–-0.019)",572517,"0.001",-0.08
+"Observed ASV richness",1204,"187.000 (152.000–217.250)",1034,"173.000 (141.000–209.000)","-14.000 (-18.000–-8.000)",558178.5,"<0.001",-0.103

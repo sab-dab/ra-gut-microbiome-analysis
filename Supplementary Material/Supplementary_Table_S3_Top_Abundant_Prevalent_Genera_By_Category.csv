@@ -1,0 +1,61 @@
+"Group","Ranking_Type","Genus","Mean_Relative_Abundance_Percent","Mean_Prevalence_Percent"
+"Shared","Most abundant","Bacteroides",16.4119,99.38
+"Shared","Most abundant","Roseburia",5.5292,86.72
+"Shared","Most abundant","Faecalibacterium",5.4391,95.71
+"Shared","Most abundant","Agathobacter",5.421,78.85
+"Shared","Most abundant","Escherichia-Shigella",5.1682,94.32
+"Shared","Most abundant","Blautia",5.0195,97.95
+"Shared","Most abundant","Prevotella 9",3.3074,36.21
+"Shared","Most abundant","Bifidobacterium",3.1787,93.23
+"Shared","Most abundant","Fusicatenibacter",2.9229,85.11
+"Shared","Most abundant","Lachnoclostridium",2.81,90.26
+"Shared","Most prevalent","Bacteroides",16.4119,99.38
+"Shared","Most prevalent","Blautia",5.0195,97.95
+"Shared","Most prevalent","Faecalibacterium",5.4391,95.71
+"Shared","Most prevalent","Streptococcus",2.5645,95.28
+"Shared","Most prevalent","Escherichia-Shigella",5.1682,94.32
+"Shared","Most prevalent","Bifidobacterium",3.1787,93.23
+"Shared","Most prevalent","Lachnoclostridium",2.81,90.26
+"Shared","Most prevalent","Erysipelotrichaceae UCG-003",1.0301,87.96
+"Shared","Most prevalent","Roseburia",5.5292,86.72
+"Shared","Most prevalent","Butyricicoccus",0.4504,86.09
+"HC only","Most abundant","Cetobacterium",0.0387,0.42
+"HC only","Most abundant","Clostridium sensu stricto 18",0.0143,0.08
+"HC only","Most abundant","Anaerocolumna",0.0053,0.17
+"HC only","Most abundant","Lachnoclostridium 10",0.0019,0.17
+"HC only","Most abundant","Clostridium sensu stricto 3",0.0018,0.25
+"HC only","Most abundant","Candidatus Gastranaerophilales bacterium Zag_111",0.0016,0.17
+"HC only","Most abundant","Clostridium sensu stricto 16",0.0014,0.17
+"HC only","Most abundant","Pantoea",0.0014,0.17
+"HC only","Most abundant","Leptotrichia",5e-04,0.33
+"HC only","Most abundant","Parvibacter",4e-04,0.33
+"HC only","Most prevalent","Cetobacterium",0.0387,0.42
+"HC only","Most prevalent","Paraeggerthella",2e-04,0.42
+"HC only","Most prevalent","Leptotrichia",5e-04,0.33
+"HC only","Most prevalent","Parvibacter",4e-04,0.33
+"HC only","Most prevalent","Asaccharobacter",1e-04,0.25
+"HC only","Most prevalent","Brachybacterium",2e-04,0.25
+"HC only","Most prevalent","Clostridium sensu stricto 3",0.0018,0.25
+"HC only","Most prevalent","Acetanaerobacterium",0,0.17
+"HC only","Most prevalent","Anaerocolumna",0.0053,0.17
+"HC only","Most prevalent","Anoxybacillus",0,0.17
+"RA only","Most abundant","Succiniclasticum",6e-04,0.29
+"RA only","Most abundant","Alloscardovia",5e-04,0.48
+"RA only","Most abundant","Lachnospiraceae UCG-007",5e-04,0.1
+"RA only","Most abundant","Glutamicibacter",3e-04,0.19
+"RA only","Most abundant","Paraclostridium",3e-04,0.1
+"RA only","Most abundant","Proteiniphilum",2e-04,0.19
+"RA only","Most abundant","Paenochrobactrum",2e-04,0.1
+"RA only","Most abundant","Atopostipes",2e-04,0.1
+"RA only","Most abundant","Marsilea mutica",2e-04,0.1
+"RA only","Most abundant","Paenalcaligenes",1e-04,0.1
+"RA only","Most prevalent","Alloscardovia",5e-04,0.48
+"RA only","Most prevalent","Porphyromonadaceae bacterium C941",1e-04,0.39
+"RA only","Most prevalent","Succiniclasticum",6e-04,0.29
+"RA only","Most prevalent","A2",1e-04,0.19
+"RA only","Most prevalent","Cardiobacterium",0,0.19
+"RA only","Most prevalent","Coriobacteriaceae UCG-002",1e-04,0.19
+"RA only","Most prevalent","Glutamicibacter",3e-04,0.19
+"RA only","Most prevalent","Helicobacter",1e-04,0.19
+"RA only","Most prevalent","Proteiniphilum",2e-04,0.19
+"RA only","Most prevalent","Alicycliphilus",0,0.1
