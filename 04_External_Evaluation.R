@@ -9,52 +9,116 @@ library(yardstick)
 library(pROC)
 library(ggplot2)
 
-# Load predictions created in the external prediction script
+# ============================================================
+# SCRIPT 4: RETUNED EXTERNAL VALIDATION METRICS AND FIGURES
+# ============================================================
+
+output_path <- file.path(
+  "external_validation_results_RETUNED"
+)
+
+metadata_file <- file.path("RA_validation", "SraRunTable.csv")
+
+# ============================================================
+# 1) Packages
+# ============================================================
+
+library(dplyr)
+library(yardstick)
+library(pROC)
+library(ggplot2)
+
+# ============================================================
+# 2) Load RETUNED external predictions
+# ============================================================
+
 external_results <- read.csv(
   file.path(
     output_path,
-    "External_Genus_Predictions.csv"
+    "External_Genus_Predictions_RETUNED.csv"
   ),
-  stringsAsFactors = FALSE
+  stringsAsFactors = FALSE,
+  check.names = FALSE
 )
 
-# Load the full study metadata
+cat(
+  "Prediction rows:",
+  nrow(external_results),
+  "\n"
+)
+
+# ============================================================
+# 3) Load full external-study metadata
+# ============================================================
+
 metadata_all <- read.csv(
   metadata_file,
   stringsAsFactors = FALSE,
   check.names = FALSE
 )
 
-# Derive verified disease labels
+# ============================================================
+# 4) Derive verified RA / HC labels
+# ============================================================
+
 metadata_selected <- metadata_all %>%
-  transmute(
+  dplyr::transmute(
     Sample = Run,
     Sample_Name = `Sample Name`,
-    Group = case_when(
+    Group = dplyr::case_when(
       grepl("^RA_", `Sample Name`) ~ "RA",
       grepl("^GUT_", `Sample Name`) ~ "HC",
       TRUE ~ NA_character_
     )
   ) %>%
-  filter(
+  dplyr::filter(
     Sample %in% external_results$Sample
   )
 
-# Check that each prediction has exactly one true label
-cat("Predicted samples:", nrow(external_results), "\n")
-cat("Matched metadata samples:", nrow(metadata_selected), "\n")
-cat("RA samples:", sum(metadata_selected$Group == "RA"), "\n")
-cat("HC samples:", sum(metadata_selected$Group == "HC"), "\n")
-cat("Missing labels:", sum(is.na(metadata_selected$Group)), "\n")
+cat(
+  "Predicted samples:",
+  nrow(external_results),
+  "\n"
+)
+
+cat(
+  "Matched metadata samples:",
+  nrow(metadata_selected),
+  "\n"
+)
+
+cat(
+  "RA samples:",
+  sum(metadata_selected$Group == "RA"),
+  "\n"
+)
+
+cat(
+  "HC samples:",
+  sum(metadata_selected$Group == "HC"),
+  "\n"
+)
+
+cat(
+  "Missing labels:",
+  sum(is.na(metadata_selected$Group)),
+  "\n"
+)
+
+# ============================================================
+# 5) Join predictions with true labels
+# ============================================================
 
 evaluation_df <- external_results %>%
-  left_join(
+  dplyr::left_join(
     metadata_selected,
     by = "Sample"
   )
 
 if (any(is.na(evaluation_df$Group))) {
-  stop("One or more processed samples do not have a verified RA/HC label.")
+  stop(
+    "One or more processed samples do not have a verified RA/HC label."
+  )
 }
 
 evaluation_df$Group <- factor(
@@ -71,20 +135,21 @@ write.csv(
   evaluation_df,
   file.path(
     output_path,
-    "External_Predictions_With_True_Labels.csv"
+    "External_Predictions_With_True_Labels_RETUNED.csv"
   ),
   row.names = FALSE
 )
 
+# ============================================================
+# 6) Point-estimate classification metrics
+# ============================================================
 
-# Accuracy
 external_accuracy <- yardstick::accuracy(
   evaluation_df,
   truth = Group,
   estimate = .pred_class
 )
 
-# Sensitivity for RA
 external_sensitivity <- yardstick::sens(
   evaluation_df,
   truth = Group,
@@ -92,7 +157,6 @@ external_sensitivity <- yardstick::sens(
   event_level = "second"
 )
 
-# Specificity for HC
 external_specificity <- yardstick::spec(
   evaluation_df,
   truth = Group,
@@ -100,7 +164,6 @@ external_specificity <- yardstick::spec(
   event_level = "second"
 )
 
-# ROC-AUC
 external_auc <- yardstick::roc_auc(
   evaluation_df,
   truth = Group,
@@ -108,11 +171,18 @@ external_auc <- yardstick::roc_auc(
   event_level = "second"
 )
 
+cat(
+  "\nPoint estimates:\n"
+)
+
 print(external_accuracy)
 print(external_sensitivity)
 print(external_specificity)
 print(external_auc)
 
+# ============================================================
+# 7) Confusion matrix
+# ============================================================
 
 external_confusion <- yardstick::conf_mat(
   evaluation_df,
@@ -120,7 +190,28 @@ external_confusion <- yardstick::conf_mat(
   estimate = .pred_class
 )
 
-print(external_confusion)
+cat(
+  "\nConfusion matrix:\n"
+)
+
+print(
+  external_confusion
+)
+
+write.csv(
+  as.data.frame(
+    external_confusion$table
+  ),
+  file.path(
+    output_path,
+    "External_Confusion_Matrix_RETUNED.csv"
+  ),
+  row.names = FALSE
+)
+
+# ============================================================
+# 8) ROC-AUC and 95% CI
+# ============================================================
 
 roc_obj <- pROC::roc(
   response = evaluation_df$Group,
@@ -130,89 +221,224 @@ roc_obj <- pROC::roc(
   quiet = TRUE
 )
 
-auc_ci <- pROC::ci.auc(roc_obj)
+auc_value <- as.numeric(
+  pROC::auc(
+    roc_obj
+  )
+)
 
-cat("ROC-AUC:", as.numeric(pROC::auc(roc_obj)), "\n")
+auc_ci <- pROC::ci.auc(
+  roc_obj
+)
+
 cat(
-  "95% CI:",
-  as.numeric(auc_ci[1]),
-  "-",
-  as.numeric(auc_ci[3]),
+  "\nROC-AUC:",
+  round(
+    auc_value,
+    4
+  ),
   "\n"
 )
 
+cat(
+  "ROC-AUC 95% CI:",
+  round(
+    as.numeric(
+      auc_ci[1]
+    ),
+    4
+  ),
+  "-",
+  round(
+    as.numeric(
+      auc_ci[3]
+    ),
+    4
+  ),
+  "\n"
+)
+
+# ============================================================
+# 9) Exact binomial 95% CIs
+#    Accuracy, sensitivity, specificity
+# ============================================================
+
+n_correct <- sum(
+  evaluation_df$Group ==
+    evaluation_df$.pred_class
+)
+
+true_positive <- sum(
+  evaluation_df$Group == "RA" &
+    evaluation_df$.pred_class == "RA"
+)
+
+n_RA <- sum(
+  evaluation_df$Group == "RA"
+)
+
+true_negative <- sum(
+  evaluation_df$Group == "HC" &
+    evaluation_df$.pred_class == "HC"
+)
+
+n_HC <- sum(
+  evaluation_df$Group == "HC"
+)
+
+accuracy_ci <- binom.test(
+  n_correct,
+  nrow(evaluation_df),
+  conf.level = 0.95
+)$conf.int
+
+sensitivity_ci <- binom.test(
+  true_positive,
+  n_RA,
+  conf.level = 0.95
+)$conf.int
+
+specificity_ci <- binom.test(
+  true_negative,
+  n_HC,
+  conf.level = 0.95
+)$conf.int
+
+cat(
+  "\nExternal accuracy:",
+  round(
+    n_correct / nrow(evaluation_df),
+    3
+  ),
+  "95% CI",
+  round(
+    accuracy_ci[1],
+    3
+  ),
+  "-",
+  round(
+    accuracy_ci[2],
+    3
+  ),
+  "\n"
+)
+
+cat(
+  "External sensitivity:",
+  round(
+    true_positive / n_RA,
+    3
+  ),
+  "95% CI",
+  round(
+    sensitivity_ci[1],
+    3
+  ),
+  "-",
+  round(
+    sensitivity_ci[2],
+    3
+  ),
+  "\n"
+)
+
+cat(
+  "External specificity:",
+  round(
+    true_negative / n_HC,
+    3
+  ),
+  "95% CI",
+  round(
+    specificity_ci[1],
+    3
+  ),
+  "-",
+  round(
+    specificity_ci[2],
+    3
+  ),
+  "\n"
+)
+
+# ============================================================
+# 10) Final summary table
+# ============================================================
 
 external_metrics_summary <- data.frame(
   Samples = nrow(evaluation_df),
-  RA = sum(evaluation_df$Group == "RA"),
-  HC = sum(evaluation_df$Group == "HC"),
-  Accuracy = external_accuracy$.estimate,
-  Sensitivity = external_sensitivity$.estimate,
-  Specificity = external_specificity$.estimate,
-  ROC_AUC = external_auc$.estimate,
-  ROC_AUC_CI_Lower = as.numeric(auc_ci[1]),
-  ROC_AUC_CI_Upper = as.numeric(auc_ci[3])
+  RA = n_RA,
+  HC = n_HC,
+  
+  Accuracy = n_correct / nrow(evaluation_df),
+  Accuracy_CI_Lower = accuracy_ci[1],
+  Accuracy_CI_Upper = accuracy_ci[2],
+  
+  Sensitivity = true_positive / n_RA,
+  Sensitivity_CI_Lower = sensitivity_ci[1],
+  Sensitivity_CI_Upper = sensitivity_ci[2],
+  
+  Specificity = true_negative / n_HC,
+  Specificity_CI_Lower = specificity_ci[1],
+  Specificity_CI_Upper = specificity_ci[2],
+  
+  ROC_AUC = auc_value,
+  ROC_AUC_CI_Lower = as.numeric(
+    auc_ci[1]
+  ),
+  ROC_AUC_CI_Upper = as.numeric(
+    auc_ci[3]
+  )
 )
 
-print(external_metrics_summary)
+cat(
+  "\n============================================\n"
+)
+
+cat(
+  "RETUNED EXTERNAL VALIDATION METRICS\n"
+)
+
+cat(
+  "============================================\n"
+)
+
+print(
+  external_metrics_summary
+)
 
 write.csv(
   external_metrics_summary,
   file.path(
     output_path,
-    "External_Validation_Metrics_Final.csv"
+    "External_Validation_Metrics_RETUNED_With_95CI.csv"
   ),
   row.names = FALSE
 )
 
-##############################################################################
-#checks
-roc_obj_reverse <- pROC::roc(
-  response = evaluation_df$Group,
-  predictor = evaluation_df$.pred_RA,
-  levels = c("HC", "RA"),
-  direction = ">",
-  quiet = TRUE
-)
-
-pROC::auc(roc_obj_reverse)
-
-head(pred_prob)
-levels(evaluation_df$Group)
-table(evaluation_df$.pred_class)
-all(colnames(external_prediction)[-1] ==
-      setdiff(colnames(discovery_training), c("Sample","Group")))
-summary(discovery_training[, 2:6])
-length(shared)
-sum(colSums(external_prediction[, discovery_features]) > 0)
-#############################################################################
-#ROC curve 
-library(ggplot2)
-library(pROC)
-
-roc_obj <- pROC::roc(
-  response = evaluation_df$Group,
-  predictor = evaluation_df$.pred_RA,
-  levels = c("HC", "RA"),
-  direction = "<"
-)
+# ============================================================
+# 11) ROC curve
+# ============================================================
 
 roc_df <- data.frame(
   FPR = 1 - roc_obj$specificities,
   TPR = roc_obj$sensitivities
 )
 
-roc_auc <- as.numeric(pROC::auc(roc_obj))
-
-ggplot(roc_df,
-       aes(FPR, TPR)) +
-  geom_line(size = 1.2,
-            color = "#0072B2") +
+p_roc <- ggplot(
+  roc_df,
+  aes(
+    x = FPR,
+    y = TPR
+  )
+) +
+  geom_line(
+    linewidth = 1.2
+  ) +
   geom_abline(
     slope = 1,
     intercept = 0,
-    linetype = "dashed",
-    color = "grey60"
+    linetype = "dashed"
   ) +
   annotate(
     "text",
@@ -220,43 +446,54 @@ ggplot(roc_df,
     y = 0.10,
     label = paste0(
       "AUC = ",
-      round(roc_auc,3)
+      round(
+        auc_value,
+        3
+      )
     ),
     size = 5
   ) +
   labs(
-    title = "External Validation ROC Curve",
+    title = "External Validation ROC Curve - Retuned Model",
     x = "False Positive Rate",
     y = "True Positive Rate"
   ) +
-  theme_classic(base_size = 14)
+  theme_classic(
+    base_size = 14
+  )
+
+print(
+  p_roc
+)
 
 ggsave(
-  file.path(
+  filename = file.path(
     output_path,
-    "Figure8A_ROC.pdf"
+    "Figure9_ROC_RETUNED.pdf"
   ),
+  plot = p_roc,
   width = 6,
   height = 5
 )
 
 ggsave(
-  file.path(
+  filename = file.path(
     output_path,
-    "Figure8A_ROC.png"
+    "Figure9_ROC_RETUNED.png"
   ),
+  plot = p_roc,
   width = 6,
   height = 5,
   dpi = 600
 )
 
-###########################################################################
-#confusion matrix 
-cm <- as.data.frame(external_confusion$table)
+# ============================================================
+# 12) Confusion-matrix figure
+# ============================================================
 
-print(cm)
-colnames(cm) 
-cm <- as.data.frame(external_confusion$table)
+cm <- as.data.frame(
+  external_confusion$table
+)
 
 p_cm <- ggplot(
   cm,
@@ -268,27 +505,29 @@ p_cm <- ggplot(
 ) +
   geom_tile() +
   geom_text(
-    aes(label = Freq),
+    aes(
+      label = Freq
+    ),
     size = 7
   ) +
-  scale_fill_gradient(
-    low = "white",
-    high = "#0072B2"
+  theme_classic(
+    base_size = 14
   ) +
-  theme_classic(base_size = 14) +
   labs(
-    title = "External Validation Confusion Matrix",
+    title = "External Validation Confusion Matrix - Retuned Model",
     x = "Observed group",
     y = "Predicted group",
     fill = "Samples"
   )
 
-print(p_cm)
+print(
+  p_cm
+)
 
 ggsave(
-  file.path(
+  filename = file.path(
     output_path,
-    "Figure8B_ConfusionMatrix.pdf"
+    "Figure9_ConfusionMatrix_RETUNED.pdf"
   ),
   plot = p_cm,
   width = 5,
@@ -296,9 +535,9 @@ ggsave(
 )
 
 ggsave(
-  file.path(
+  filename = file.path(
     output_path,
-    "Figure8B_ConfusionMatrix.png"
+    "Figure9_ConfusionMatrix_RETUNED.png"
   ),
   plot = p_cm,
   width = 5,
@@ -306,69 +545,64 @@ ggsave(
   dpi = 600
 )
 
-##########################################################################
-#prediction probabilities
-ggplot(
+# ============================================================
+# 13) Prediction-probability figure
+# ============================================================
+
+p_prob <- ggplot(
   evaluation_df,
   aes(
-    x=Group,
-    y=.pred_RA,
-    fill=Group
+    x = Group,
+    y = .pred_RA,
+    fill = Group
   )
-)+
+) +
   geom_boxplot(
-    alpha=.6,
-    outlier.shape=NA
-  )+
+    alpha = 0.6,
+    outlier.shape = NA
+  ) +
   geom_jitter(
-    width=.15,
-    size=2
-  )+
-  theme_classic(base_size=14)+
+    width = 0.15,
+    size = 2
+  ) +
+  theme_classic(
+    base_size = 14
+  ) +
   labs(
-    title="Predicted RA Probability",
-    x="True Group",
-    y="Predicted Probability (RA)"
+    title = "Predicted RA Probability - Retuned Model",
+    x = "True Group",
+    y = "Predicted Probability (RA)"
   )
 
-ggsave(
-  file.path(
-    output_path,
-    "Figure8C_Probability.pdf"
-  ),
-  width=5,
-  height=5
+print(
+  p_prob
 )
 
 ggsave(
-  file.path(
+  filename = file.path(
     output_path,
-    "Figure8C_Probability.png"
+    "Figure9_Probability_RETUNED.pdf"
   ),
-  width=5,
-  height=5,
-  dpi=600
-)
-#################################################################################
-#save confusion matrix table 
-write.csv(
-  as.data.frame(external_confusion$table),
-  file.path(
-    output_path,
-    "External_Confusion_Matrix_Final.csv"
-  ),
-  row.names = FALSE
+  plot = p_prob,
+  width = 5,
+  height = 5
 )
 
-#save labeled prediction table 
-file.exists(
-  file.path(
+ggsave(
+  filename = file.path(
     output_path,
-    "External_Predictions_With_True_Labels.csv"
-  )
+    "Figure9_Probability_RETUNED.png"
+  ),
+  plot = p_prob,
+  width = 5,
+  height = 5,
+  dpi = 600
 )
 
-#create one sample-flow table 
+# ============================================================
+# 14) Sample-flow summary
+# ============================================================
+
 external_sample_flow <- data.frame(
   Stage = c(
     "FASTQ pairs downloaded",
@@ -396,9 +630,29 @@ write.csv(
   external_sample_flow,
   file.path(
     output_path,
-    "Table_External_Validation_Sample_Flow.csv"
+    "Table_External_Validation_Sample_Flow_RETUNED.csv"
   ),
   row.names = FALSE
 )
 
-print(external_sample_flow)
+print(
+  external_sample_flow
+)
+
+cat(
+  "\n============================================\n"
+)
+
+cat(
+  "RETUNED EXTERNAL EVALUATION COMPLETE\n"
+)
+
+cat(
+  "Results saved in:\n",
+  output_path,
+  "\n"
+)
+
+cat(
+  "============================================\n"
+)
