@@ -1,4 +1,4 @@
-
+project_dir <- getwd()
 
 # =============================================================================
 # 0) Paths
@@ -23,6 +23,14 @@ if (!dir.exists(save_dir)) {
   )
 }
 
+if (!file.exists(
+  file.path(
+    model_dir,
+    "discovery_genus_training_data_rebuilt.rds"
+  )
+)) {
+  stop("Run 02_Genus_XGBoost_Model_Development.R first.")
+}
 # =============================================================================
 # 1) Packages
 # =============================================================================
