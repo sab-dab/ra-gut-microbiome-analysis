@@ -23,28 +23,6 @@
 # =============================================================================
 # 0) Setup
 # =============================================================================
-
-
-save_dir <- file.path(getwd(), "results_final")
-if (!dir.exists(save_dir)) dir.create(save_dir, recursive = TRUE)
-
-install.packages(c(
-  "dplyr",
-  "tibble",
-  "stringr",
-  "tidyr",
-  "ggplot2",
-  "vegan",
-  "yardstick",
-  "pROC",
-  "pheatmap",
-  "xgboost"
-))
-
-install.packages("BiocManager")
-
-BiocManager::install("DESeq2") 
-install.packages("tidymodels", dependencies = TRUE)
 # =============================================================================
 # 1) Libraries
 # =============================================================================
@@ -66,8 +44,27 @@ conflicted::conflicts_prefer(dplyr::desc)
 # =============================================================================
 # 2) Load data
 # =============================================================================
-asv_profile <- readRDS("1.ASV.profile.rds")
-tax_info    <- readRDS("1.taxonomy.info.rds")
+project_dir <- getwd()
+
+save_dir <- file.path(project_dir, "results_final")
+
+if (!dir.exists(save_dir)) {
+  dir.create(save_dir, recursive = TRUE)
+}
+
+asv_file <- file.path(project_dir, "1.ASV.profile.rds")
+taxonomy_file <- file.path(project_dir, "1.taxonomy.info.rds")
+
+if (!file.exists(asv_file)) {
+  stop("Missing input file: 1.ASV.profile.rds")
+}
+
+if (!file.exists(taxonomy_file)) {
+  stop("Missing input file: 1.taxonomy.info.rds")
+}
+
+asv_profile <- readRDS(asv_file)
+tax_info <- readRDS(taxonomy_file)
 
 asv_profile_df <- asv_profile %>%
   as.data.frame() %>%
