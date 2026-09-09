@@ -1,3 +1,4 @@
+project_dir <- getwd()
 model_dir <- file.path(
   project_dir,
   "genus_model_rebuild"
