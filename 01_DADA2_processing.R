@@ -1,8 +1,37 @@
 # ============================================================
-# SCRIPT 1: DADA2 PROCESSING ONLY
+# Paths
+# Run this script from the repository root
 # ============================================================
 
-if (!dir.exists(output_path)) dir.create(output_path, recursive = TRUE)
+project_dir <- getwd()
+
+external_path <- file.path(
+  project_dir,
+  "RA_validation",
+  "fastq"
+)
+
+output_path <- file.path(
+  project_dir,
+  "external_validation_results"
+)
+
+if (!dir.exists(external_path)) {
+  stop(
+    paste(
+      "External FASTQ directory not found:",
+      external_path
+    )
+  )
+}
+
+if (!dir.exists(output_path)) {
+  dir.create(output_path, recursive = TRUE)
+}
+
+# ============================================================
+# SCRIPT 1: DADA2 PROCESSING ONLY
+# ============================================================
 
 library(dada2)
 library(dplyr)
@@ -351,7 +380,21 @@ write.csv(
 )
 
 #assign taxonomy to each length group
-silva_path <- "C:/silva_nr99_v138.1_train_set.fa.gz"
+silva_path <- file.path(
+  project_dir,
+  "reference",
+  "silva_nr99_v138.1_train_set.fa.gz"
+)
+
+if (!file.exists(silva_path)) {
+  stop(
+    paste(
+      "SILVA taxonomy reference not found:",
+      silva_path,
+      "\nDownload SILVA v138.1 and place it in the reference directory."
+    )
+  )
+}
 
 taxa_456 <- dada2::assignTaxonomy(
   nochim_456,
@@ -480,141 +523,3 @@ write.csv(
 )
 
 
-discovery_features <- readRDS(
-  file.path(
-    output_path,
-    "discovery_genus_training_features.rds"
-  )
-)
-
-shared_genera <- intersect(
-  discovery_features,
-  colnames(external_genus_counts)
-)
-
-missing_genera <- base::setdiff(
-  discovery_features,
-  colnames(external_genus_counts)
-)
-
-cat("Discovery genera:", length(discovery_features), "\n")
-cat("External genera:", ncol(external_genus_counts), "\n")
-cat("Shared genera:", length(shared_genera), "\n")
-cat("Missing discovery genera:", length(missing_genera), "\n")
-cat(
-  "Overlap percentage:",
-  round(
-    100 * length(shared_genera) / length(discovery_features),
-    2
-  ),
-  "%\n"
-)
-
-head(discovery_features, 20)
-head(colnames(external_genus_counts), 20)
-
-normalize_genus_name <- function(x) {
-  x <- as.character(x)
-  x <- sub("^g__", "", x)
-  x <- gsub("^X", "", x)
-  x <- gsub("\\.", "_", x)
-  x <- gsub("[^A-Za-z0-9_]", "", x)
-  x <- tolower(x)
-  trimws(x)
-}
-
-discovery_features_clean <- normalize_genus_name(
-  discovery_features
-)
-
-external_features_clean <- normalize_genus_name(
-  colnames(external_genus_counts)
-)
-
-shared_clean <- intersect(
-  discovery_features_clean,
-  external_features_clean
-)
-
-cat("Shared genera after normalization:", length(shared_clean), "\n")
-head(shared_clean, 30)
-
-str(discovery_features)
-
-discovery_features <- colnames(
-  readRDS(
-    file.path(
-      output_path,
-      "discovery_genus_training_data.rds"
-    )
-  )
-)
-
-discovery_features <- base::setdiff(
-  discovery_features,
-  c("Sample", "Group")
-)
-
-discovery_features_clean <- normalize_genus_name(discovery_features)
-
-external_features_original <- colnames(external_genus_counts)
-external_features_clean <- normalize_genus_name(external_features_original)
-
-shared_genera_clean <- intersect(
-  discovery_features_clean,
-  external_features_clean
-)
-
-missing_genera_clean <- base::setdiff(
-  discovery_features_clean,
-  external_features_clean
-)
-
-cat("Discovery genera:", length(discovery_features_clean), "\n")
-cat("External genera:", length(external_features_clean), "\n")
-cat("Shared genera:", length(shared_genera_clean), "\n")
-cat(
-  "Overlap percentage:",
-  round(
-    100 * length(shared_genera_clean) /
-      length(discovery_features_clean),
-    2
-  ),
-  "%\n"
-)
-
-shared_genera_report <- base::setdiff(
-  shared_genera_clean,
-  "unknown"
-)
-
-
-feature_overlap <- data.frame(
-  Discovery_Genera = length(discovery_features_clean),
-  External_Genera = length(external_features_clean),
-  Shared_Genera_Including_Unknown = length(shared_genera_clean),
-  Shared_Named_Genera = length(shared_genera_report),
-  Overlap_Percentage = round(
-    100 * length(shared_genera_clean) /
-      length(discovery_features_clean),
-    2
-  )
-)
-
-write.csv(
-  feature_overlap,
-  file.path(
-    output_path,
-    "Table_Corrected_Genus_Feature_Overlap.csv"
-  ),
-  row.names = FALSE
-)
-
-write.csv(
-  data.frame(Shared_Genus = shared_genera_report),
-  file.path(
-    output_path,
-    "Table_Corrected_Shared_Genera.csv"
-  ),
-  row.names = FALSE
-)
