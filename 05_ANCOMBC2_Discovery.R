@@ -13,16 +13,6 @@ if (!dir.exists(save_dir)) {
 # 1) Packages
 # =============================================================================
 
-if (!requireNamespace("BiocManager", quietly = TRUE)) {
-  install.packages("BiocManager")
-}
-
-if (!requireNamespace("ANCOMBC", quietly = TRUE)) {
-  BiocManager::install("ANCOMBC", update = FALSE, ask = FALSE)
-}
-
-
-BiocManager::install("phyloseq", ask = FALSE, update = FALSE)
 
 library(ANCOMBC)
 library(dplyr)
@@ -34,8 +24,15 @@ library(phyloseq)
 # 2) Load discovery data
 # =============================================================================
 
-asv_profile <- readRDS("1.ASV.profile.rds")
-tax_info    <- readRDS("1.taxonomy.info.rds")
+project_dir <- getwd()
+
+asv_profile <- readRDS(
+  file.path(project_dir, "1.ASV.profile.rds")
+)
+
+tax_info <- readRDS(
+  file.path(project_dir, "1.taxonomy.info.rds")
+)
 
 # Samples as rows, ASVs as columns
 asv_counts <- t(as.matrix(asv_profile))
