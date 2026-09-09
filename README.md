@@ -2,7 +2,7 @@
 
 This repository contains the R scripts used to reproduce the analyses reported in the accompanying manuscript:
 
-**Gut Microbiome-Based Prediction of Rheumatoid Arthritis Using Machine Learning: A Benchmarking Study Reveals Limited Cross-Cohort Generalizability**
+**Machine Learning Prediction of Rheumatoid Arthritis Using the Gut Microbiome Shows Limited Cross-Cohort Generalizability**
 
 The study evaluates gut microbiome differences between individuals with rheumatoid arthritis (RA) and healthy controls (HC), benchmarks multiple machine-learning algorithms, assesses model stability across repeated train-test splits, evaluates genus-level feature transformations and permutation importance, performs leakage-free ANCOM-BC2 feature selection, and tests model transportability in an independent external cohort.
 
@@ -20,6 +20,23 @@ The study evaluates gut microbiome differences between individuals with rheumato
 | `07_Permutation_Importance_Stability.R` | Repeated held-out permutation-importance analysis used to quantify the stability of genus-level predictors across 30 stratified train-test splits. |
 | `08_Nested_ANCOMBC2_Feature_Selection.R` | Leakage-free nested comparison of the full genus-level XGBoost model with models restricted to training-only ANCOM-BC2-selected genera. Reduced-feature models are independently tuned within the corresponding training partitions. |
 | `External_Genus_Differential_Abundance.R` | Exploratory genus-level differential-abundance analysis of the external cohort. |
+
+## Recommended Run Order
+
+For the primary and external-validation workflows, the scripts can be run in the following general order:
+
+1. `00_Main_Analysis_Pipeline.R`
+2. `05_ANCOMBC2_Discovery.R`
+3. `02_Genus_XGBoost_Model_Development.R`
+4. `06_Transformation_Sensitivity.R`
+5. `07_Permutation_Importance_Stability.R`
+6. `08_Nested_ANCOMBC2_Feature_Selection.R`
+7. `01_DADA2_processing.R`
+8. `03_External_Prediction.R`
+9. `04_External_Evaluation.R`
+10. `External_Genus_Differential_Abundance.R`
+
+The external-validation scripts require the external FASTQ files, metadata, and SILVA taxonomy reference described below.
 
 ## Analysis Overview
 
@@ -64,7 +81,7 @@ Analyses were performed using:
 - `stringr`
 - `ggplot2`
 
-Exact package versions used in the final analysis are reported in Supplementary Table S9 of the manuscript.
+Users should install the required CRAN and Bioconductor packages before running the scripts. Exact package versions used in the final analysis are reported in Supplementary Table S9 of the manuscript.
 
 ## Reproducibility
 
@@ -72,18 +89,26 @@ Random seeds were fixed throughout the analyses where applicable.
 
 Preprocessing operations used for machine-learning evaluation were estimated using training data and applied unchanged to the corresponding held-out test data. Training-only feature selection and nested model tuning were used where indicated to minimize information leakage.
 
-The scripts are intended to be run from the repository root using project-relative file paths. Users should download the required public datasets separately and place them in the expected input directories before running the workflows.
+The scripts are intended to be run from the repository root using project-relative file paths.
 
-## Data Availability
+Required primary-cohort input files should be placed in the repository root:
 
-The analyses were performed using publicly available, de-identified 16S rRNA sequencing datasets.
+- `1.ASV.profile.rds`
+- `1.taxonomy.info.rds`
 
-- **Primary cohort:** Li et al., *Scientific Data* (2025). Publicly available ASV abundance and taxonomy files were used for the primary analyses.
-- **External validation cohort:** Sun et al. Publicly available paired-end raw sequencing data were used for independent external validation.
+External-validation metadata should be placed at:
 
-The corresponding public repository identifiers and accession information are provided in the manuscript.
+- `RA_validation/SraRunTable.csv`
 
-This repository contains analysis code and derived analysis outputs where appropriate. Raw sequencing data should be obtained directly from the original public repositories.
+External paired-end FASTQ files should be placed in:
+
+- `RA_validation/fastq/`
+
+The SILVA taxonomy reference used for DADA2 processing should be placed at:
+
+- `reference/silva_nr99_v138.1_train_set.fa.gz`
+
+Raw sequencing data and other source datasets are not distributed with this repository and should be obtained from the public repositories described in the manuscript.
 
 ## Supplementary Tables
 
