@@ -1,8 +1,4 @@
-
-
-library(dplyr)
-library(tidymodels)
-library(xgboost) 
+project_dir <- getwd()
 
 external_input_dir <- file.path(
   "external_validation_results"
@@ -36,6 +32,14 @@ tidymodels::tidymodels_prefer()
 # =============================================================================
 # 2) Load the SAME external genus counts used previously
 # =============================================================================
+external_genus_file <- file.path(
+  external_input_dir,
+  "external_genus_counts_combined.rds"
+)
+
+if (!file.exists(external_genus_file)) {
+  stop("Run 01_DADA2_processing.R first.")
+}
 
 external_genus_counts <- readRDS(
   file.path(
