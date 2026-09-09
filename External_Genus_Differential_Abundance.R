@@ -4,9 +4,24 @@ library(stringr)
 library(DESeq2)
 library(ggplot2)
 
-output_path <- file.path("external_validation_results")
+project_dir <- getwd()
 
-metadata_file <- file.path("SraRunTable.csv")
+output_path <- file.path(
+  project_dir,
+  "external_validation_results"
+)
+
+metadata_file <- file.path(
+  project_dir,
+  "RA_validation",
+  "SraRunTable.csv"
+)
+
+if (!file.exists(metadata_file)) {
+  stop(
+    "Missing RA_validation/SraRunTable.csv"
+  )
+}
 
 # -----------------------------------------------------------------------------
 # 1. Load external genus count table
