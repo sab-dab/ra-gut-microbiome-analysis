@@ -12,12 +12,23 @@ library(ggplot2)
 # ============================================================
 # SCRIPT 4: RETUNED EXTERNAL VALIDATION METRICS AND FIGURES
 # ============================================================
-
+project_dir <- getwd() 
 output_path <- file.path(
+  project_dir,
   "external_validation_results_RETUNED"
 )
 
-metadata_file <- file.path("RA_validation", "SraRunTable.csv")
+metadata_file <- file.path(
+  project_dir,
+  "RA_validation",
+  "SraRunTable.csv"
+)
+
+if (!file.exists(metadata_file)) {
+  stop(
+    "Missing RA_validation/SraRunTable.csv"
+  )
+}
 
 # ============================================================
 # 1) Packages
