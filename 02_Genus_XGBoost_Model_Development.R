@@ -14,11 +14,6 @@ if (!dir.exists(output_dir)) {
   )
 }
 
-old_model_dir <- file.path(
-  "external_validation_results"
-)
-
-setwd(project_dir)
 
 # =============================================================================
 # 1) Packages
@@ -39,19 +34,34 @@ set.seed(123)
 # 2) Load original primary-cohort inputs
 # =============================================================================
 
-asv_profile <- readRDS(
-  file.path(
-    project_dir,
-    "1.ASV.profile.rds"
-  )
+asv_file <- file.path(
+  project_dir,
+  "1.ASV.profile.rds"
 )
 
-tax_info <- readRDS(
-  file.path(
-    project_dir,
-    "1.taxonomy.info.rds"
-  )
+taxonomy_file <- file.path(
+  project_dir,
+  "1.taxonomy.info.rds"
 )
+
+# Check that required input files are available
+if (!file.exists(asv_file)) {
+  stop(
+    "Missing input file: 1.ASV.profile.rds. ",
+    "Please place this file in the repository root directory."
+  )
+}
+
+if (!file.exists(taxonomy_file)) {
+  stop(
+    "Missing input file: 1.taxonomy.info.rds. ",
+    "Please place this file in the repository root directory."
+  )
+}
+
+# Load input files
+asv_profile <- readRDS(asv_file)
+tax_info <- readRDS(taxonomy_file)
 
 cat(
   "\nOriginal ASV profile dimensions:\n"
@@ -68,7 +78,6 @@ cat(
 print(
   dim(tax_info)
 )
-
 # =============================================================================
 # 3) Convert ASV profile to samples x ASVs
 # =============================================================================
@@ -374,130 +383,7 @@ write.csv(
   row.names = FALSE
 )
 
-# =============================================================================
-# 10) Compare rebuilt data with July 14 discovery files
-# =============================================================================
 
-old_data_file <- file.path(
-  old_model_dir,
-  "discovery_genus_training_data.rds"
-)
-
-old_features_file <- file.path(
-  old_model_dir,
-  "discovery_genus_training_features.rds"
-)
-
-if (
-  file.exists(old_data_file) &&
-  file.exists(old_features_file)
-) {
-  
-  old_genus_df <- readRDS(
-    old_data_file
-  )
-  
-  old_features <- readRDS(
-    old_features_file
-  )
-  
-  cat(
-    "\n============================================\n"
-  )
-  
-  cat(
-    "COMPARISON WITH ORIGINAL JULY 14 FILES\n"
-  )
-  
-  cat(
-    "============================================\n"
-  )
-  
-  cat(
-    "Old data dimensions:",
-    paste(
-      dim(old_genus_df),
-      collapse = " x "
-    ),
-    "\n"
-  )
-  
-  cat(
-    "Rebuilt data dimensions:",
-    paste(
-      dim(genus_df),
-      collapse = " x "
-    ),
-    "\n"
-  )
-  
-  cat(
-    "Old predictor count:",
-    length(old_features),
-    "\n"
-  )
-  
-  cat(
-    "Rebuilt predictor count:",
-    length(predictor_names),
-    "\n"
-  )
-  
-  cat(
-    "Exact predictor names/order identical:",
-    identical(
-      old_features,
-      predictor_names
-    ),
-    "\n"
-  )
-  
-  cat(
-    "Same predictor set ignoring order:",
-    base::setequal(
-      old_features,
-      predictor_names
-    ),
-    "\n"
-  )
-  
-  shared_features <- intersect(
-    old_features,
-    predictor_names
-  )
-  
-  cat(
-    "Shared predictors:",
-    length(shared_features),
-    "\n"
-  )
-  
-  old_only <- base::setdiff(
-    old_features,
-    predictor_names
-  )
-  
-  rebuilt_only <- base::setdiff(
-    predictor_names,
-    old_features
-  )
-  
-  cat(
-    "\nOld-only predictors:\n"
-  )
-  
-  print(
-    old_only
-  )
-  
-  cat(
-    "\nRebuilt-only predictors:\n"
-  )
-  
-  print(
-    rebuilt_only
-  )
-}
 
 # =============================================================================
 # STOP CONDITION
@@ -512,52 +398,16 @@ cat(
   "\n"
 )
 
-if (
-  length(predictor_names) != 447
-) {
-  
+if (length(predictor_names) != 447) {
   warning(
     paste0(
       "Rebuilt dataset contains ",
       length(predictor_names),
-      " predictors instead of 447. ",
-      "Inspect the comparison with the original July 14 files ",
-      "before interpreting the tuning results."
+      " predictors instead of the expected 447. ",
+      "Check taxonomy aggregation and input files before proceeding."
     )
   )
 }
-##############################################################################
-# Compare the actual genus abundance values too
-common_cols <- colnames(old_genus_df)
-
-cat(
-  "Entire rebuilt dataset identical:",
-  identical(old_genus_df[, common_cols], genus_df[, common_cols]),
-  "\n"
-)
-
-# If identical() is FALSE because of harmless class/attribute differences:
-cat(
-  "All predictor count values equal:",
-  isTRUE(
-    all.equal(
-      as.matrix(old_genus_df[, old_features]),
-      as.matrix(genus_df[, predictor_names]),
-      check.attributes = FALSE
-    )
-  ),
-  "\n"
-)
-
-cat(
-  "Group labels identical:",
-  all(
-    as.character(old_genus_df$Group) ==
-      as.character(genus_df$Group)
-  ),
-  "\n"
-)
-
 
 # =============================================================================
 # 11) Stratified 80/20 split
@@ -1020,64 +870,10 @@ saveRDS(
   )
 )
 
-# =============================================================================
-# 24) Compare old vs newly tuned parameters
-# =============================================================================
 
-old_workflow_file <- file.path(
-  old_model_dir,
-  "finalized_genus_xgboost_workflow.rds"
-)
-
-if (
-  file.exists(
-    old_workflow_file
-  )
-) {
-  
-  old_workflow <- readRDS(
-    old_workflow_file
-  )
-  
-  cat(
-    "\n============================================\n"
-  )
-  
-  cat(
-    "ORIGINAL JULY 14 GENUS WORKFLOW\n"
-  )
-  
-  cat(
-    "============================================\n"
-  )
-  
-  print(
-    workflows::extract_spec_parsnip(
-      old_workflow
-    )
-  )
-  
-  cat(
-    "\n============================================\n"
-  )
-  
-  cat(
-    "NEW INDEPENDENTLY RETUNED GENUS WORKFLOW\n"
-  )
-  
-  cat(
-    "============================================\n"
-  )
-  
-  print(
-    workflows::extract_spec_parsnip(
-      finalized_genus_xgb_retuned
-    )
-  )
-}
 
 # =============================================================================
-# 25) Session information
+# 24) Session information
 # =============================================================================
 
 capture.output(
